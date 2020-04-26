@@ -23,6 +23,7 @@ def takeWord(par):
         r.pause_threshold = 1
         r.adjust_for_ambient_noise(source, duration=1)
         audio = r.listen(source)
+        print(">>> micro connect")
     try:
         zadanie = r.recognize_google(audio, language="ru-RU").lower()
         print("Вы сказали: " + zadanie)
@@ -39,10 +40,8 @@ def command():
     while zadanie != "nomad":
         zadanie = takeWord(1)
     talk(hello)
-    audio = r.listen(source)
-    zadanie = takeWord()
-    while makeSomething(zadanie, flag, 0) or zadane != "стоп":
-        audio = r.listen(source)
+    zadanie = takeWord(0)
+    while makeSomething(zadanie, flag, 0) or zadanie != "стоп":
         zadanie = takeWord(0)
 
 def makeSomething(zadanie, flag, count):
@@ -81,7 +80,7 @@ def makeSomething(zadanie, flag, count):
                 talk("Музыка уже включена")
         else:
             if count == 0: talk("Что для вас включить?")
-            elif count >= 1: talk("Извините, не расслышал, не моглибы повторить?")
+            elif count >= 1: talk("Извините, не расслышал, не могли бы повторить?")
             thing = takeWord(0)
             zadanie = zadanie + thing
             makeSomething(zadanie, flag, count + 1)
@@ -160,3 +159,42 @@ def makeSomething(zadanie, flag, count):
 
 while True:
     command()
+    
+    
+    
+    
+'''
+Привет, чем я могу помочь вам?
+Жду команды EL
+Я жду вашей команды
+Я вас не понял, повторите
+Включаю основной свет
+Включаю дополнительный свет
+Дополнительный свет уже включен
+Включаю весь свет
+Включаю основной свет
+Включаю дополнительный свет
+Весь свет уже включен
+Включаю музыку
+Музыка уже включена
+Что для вас включить?
+Извините, не расслышал, не могли бы повторить?
+Выключаю основной свет
+Основной свет уже выключен
+Выключаю дополнительный свет
+Дополнительный свет уже выключен
+Выключаю весь свет
+Выключаю основной свет
+Выключаю дополнительный свет свет
+Весь свет уже выключен
+Выключаю музыку
+Mузыка уже выключена
+Что для вас выключить?
+Пауза
+Следующий трек
+Предыдущий трек
+Музыка выключена
+Печатаю
+Сканирую и загружаю
+Сканирую
+'''
