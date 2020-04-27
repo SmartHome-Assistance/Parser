@@ -1,23 +1,26 @@
 import speech_recognition as sr
 import os
 import sys
+import pygame
 import webbrowser
 from gtts import gTTS
 
-flag = {'mainLight' : False, 'extraLight' : False, 'music' : False}
+flag = {'mainLight' : False, 'extraLight' : False, 'music' : False, 'voice' : False}
 
-def talk(words):
-    print(words)
-    language = 'ru'
-    myobj = gTTS(text=words, lang=language, slow=False)
-    myobj.save("welcome.mp3")
-    os.system("welcome.mp3")
+def talk(number):
+    if flag['voice'] == False:
+        words = "voice/m" + number
+    else:
+        words = "voice/w" + number
+    pygame.mixer.init()
+    sound = pygame.mixer.Sound(words)
+    sound.play()
 
 def makeSomething1(zadanie):
-    if 'nomad' == zadanie:
-        talk("Привет, чем я могу помочь вам?")
+    if 'макс' == zadanie:
+        talk("1.wav")
         makeSomething(command(), flag)
-    elif zadanie.find('nomad') != -1:
+    elif zadanie.find('макс') != -1:
         makeSomething(zadanie, flag)
 def command():
     r = sr.Recognizer()
@@ -32,7 +35,7 @@ def command():
         zadanie = r.recognize_google(audio, language="ru-RU").lower()
         print("Вы сказали: " + zadanie)
     except sr.UnknownValueError:
-        talk("Я вас не понял")
+        print("Я вас не понял")
         zadanie = command()
     return zadanie
 def makeSomething(zadanie, flag):
@@ -40,94 +43,102 @@ def makeSomething(zadanie, flag):
         if zadanie.find('свет') != -1:
             if zadanie.find('основной') != -1:
                 if flag['mainLight'] == False:
-                    talk("Включаю основной свет")
+                    talk("5.wav")
                     flag['mainLight'] = True
                 else:
-                    talk("Основной свет уже включен")
+                    talk("8.wav")
             elif zadanie.find('дополнительный') != -1:
                 if flag['extraLight'] == False:
-                    talk("Включаю дополнительный свет")
+                    talk("6.wav")
                     flag['extraLight'] = True
                 else:
-                    talk("Дополнительный свет уже включен")
+                    talk("9.wav")
             else:
                 if flag['mainLight'] == False and flag['extraLight'] == False:
-                    talk("Включаю весь свет")
+                    talk("7.wav")
                     flag['mainLight'] = True
                     flag['extraLight'] = True
                 elif flag['mainLight'] == False:
-                    talk("Включаю основной свет")
+                    talk("5.wav")
                     flag['mainLight'] = True
                 elif flag['extraLight'] == False:
-                    talk("Включаю дополнительный свет")
+                    talk("6.wav")
                     flag['extraLight'] = True
                 else:
-                    talk("Весь свет уже включен")
+                    talk("10.wav")
         elif zadanie.find('аудио') != -1 or zadanie.find('аудиосистему') != -1 or zadanie.find('аудосистема') != -1 or zadanie.find('музыку') != -1 or zadanie.find('музыка') != -1 or zadanie.find('медиацентр') != -1:
             if flag['music'] == False:
-                talk("Включаю музыку")
+                talk("11.wav")
                 flag['music'] = True
             else:
-                talk("Музыка уже включена")
+                talk("12.wav")
+        else:
+            talk("13.wav")
     elif zadanie.find('выключи') != -1 or zadanie.find('выключить') != -1:
         if zadanie.find('свет') != -1:
             if zadanie.find('основной') != -1:
                 if flag['mainLight'] == True:
-                    talk("Выключаю основной свет")
+                    talk("15.wav")
                     flag['mainLight'] = False
                 else:
-                    talk("Основной свет уже выключен")
+                    talk("16.wav")
             elif zadanie.find('дополнительный') != -1:
                 if flag['extraLight'] == True:
-                    talk("Выключаю дополнительный свет")
+                    talk("17.wav")
                     flag['extraLight'] = False
                 else:
-                    talk("Дополнительный свет уже выключен")
+                    talk("18.wav")
             else: 
                 if flag['mainLight'] == True and flag['extraLight'] == True:
-                    talk("Выключаю весь свет")
+                    talk("19.wav")
                     flag['mainLight'] = False
                     flag['extraLight'] = False
                 elif flag['mainLight'] == True:
-                    talk("Выключаю основной свет")
+                    talk("15.wav")
                     flag['mainLight'] = False
                 elif flag['extraLight'] == True:
-                    talk("Выключаю дополнительный свет свет")
+                    talk("17.wav")
                     flag['extraLight'] = False
                 else: 
-                    talk("Весь свет уже выключен")
+                    talk("20.wav")
         elif zadanie.find('аудио') != -1 or zadanie.find('аудиосистему') != -1 or zadanie.find('аудосистема') != -1 or zadanie.find('музыку') != -1 or zadanie.find('музыка') != -1 or zadanie.find('медиацентр') != -1:
             if flag['music'] == True:
-                talk("Выключаю музыку")
+                talk("21.wav")
                 flag['music'] = False
             else:
-                talk("Mузыка уже выключена")
+                talk("22.wav")
+        else:
+            talk("23.wav")
     elif zadanie.find('поставь на паузу') != -1 or zadanie.find('поставить на паузу') != -1:
         if flag['music'] == True:
-            talk("Пауза")
+            talk("24.wav")
         else:
-            talk("Музыка выключена")
+            talk("27.wav")
     elif zadanie.find('следующий трек') != -1 or zadanie.find('следующая песня') != -1 or zadanie.find('вперед') != -1:
         if flag['music'] == True:
-            talk("Следующий трек")
+            talk("25.wav")
         else:
-            talk("Музыка выключена")
+            talk("27.wav")
     elif zadanie.find('предыдущий трек') != -1 or zadanie.find('предыдущая песня') != -1 or zadanie.find('назад') != -1:
         if flag['music'] == True:
-            talk("Предыдущий трек")
+            talk("26.wav")
         else:
-            talk("Музыка выключена")
+            talk("27.wav")
     elif zadanie.find('распечатай') != -1 or zadanie.find('распечатать') != -1 or zadanie.find('напечатать') != -1 or zadanie.find('напечатай') != -1 or zadanie.find('печать') != -1:
-        talk("Печатаю")
+        talk("28.wav")
     elif zadanie.find('отсканируй') != -1 or zadanie.find('отсканировать') != -1:
         load = False
         if zadanie.find('загрузи') != -1 or zadanie.find('загрузить') != -1:
-            talk("Сканирую и загружаю")
+            talk("29.wav")
             load = True
         if load == False:
-            talk("Сканирую")
-    #elif zadanie.find('стоп') != -1:
-        #talk("Да, конечно, без проблем")
+            talk("30.wav")
+    elif zadanie.find('измени голос') != -1 or zadanie.find('смени голос') != -1:
+        if flag['voice'] == False:
+            flag['voice'] = True
+        else:
+            flag['voice'] = False
+        talk("31.wav")
         #sys.exit() 
     #if 'открыть сайт' in zadanie:
         #talk("Уже открываю")
