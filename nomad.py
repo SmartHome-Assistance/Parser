@@ -3,7 +3,6 @@ import os
 import sys
 import pygame
 import webbrowser
-from gtts import gTTS
 
 flag = {'mainLight' : False, 'extraLight' : False, 'music' : False, 'voice' : False}
 
