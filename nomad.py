@@ -21,17 +21,46 @@ pygame.display.init()
 def on_message(client, userdata, message):
     global song, volume
     print("message received ", str(message.payload.decode("utf-8")))
-    print("message topic=",message.topic)
+    print("message topic =",message.topic)
     if message.topic == "volume":
-        pygame.mixer.music.set_volume(float(message.payload.decode("utf-8")))
+        if flag['mute'] == False:
+            volume = float(message.payload.decode("utf-8"))
+            pygame.mixer.music.set_volume(volume)
     elif message.topic == "song":
         s = str(message.payload.decode("utf-8"))
-        song = int(s[0])
-        play()
+        if song != int(s[0]):
+            song = int(s[0])
+            pygame.mixer.music.load("music/" + music[song])
+            pygame.mixer.music.set_volume(volume)
+            pygame.mixer.music.set_endevent(pygame.USEREVENT)
+            pygame.mixer.music.play()
     elif message.topic == "voice":
         flag['voice'] = False
         if str(message.payload.decode("utf-8")) == "Woman":
             flag['voice'] = True
+    elif message.topic == "music":
+        if flag['music'] == False and str(message.payload.decode("utf-8")) == "ON":
+            play()
+            flag['music'] = True
+        elif flag['music'] == True and str(message.payload.decode("utf-8")) == "OFF":
+            pygame.mixer.music.stop()
+            flag['music'] = False
+    elif message.topic == "mute":
+        if flag['music'] == True:
+            if flag['mute'] == False and str(message.payload.decode("utf-8")) == "ON":
+                pygame.mixer.music.set_volume(0)
+                flag['mute'] = True
+            elif flag['mute'] == True and str(message.payload.decode("utf-8")) == "OFF":
+                pygame.mixer.music.set_volume(volume)
+                flag['mute'] = False
+    elif message.topic == "pause":
+        if flag['music'] == True:
+            if flag['pause'] == False and str(message.payload.decode("utf-8")) == "ON":
+                pygame.mixer.music.pause()
+                flag['pause'] = True
+            elif flag['pause'] == True and str(message.payload.decode("utf-8")) == "OFF":
+                pygame.mixer.music.unpause()
+                flag['pause'] = False
     else:
         flag[message.topic] = False
         if str(message.payload.decode("utf-8")) == "ON":
@@ -252,10 +281,15 @@ def makeSomething(command):
             if (volume - 0.1 > 0):
                 volume -= 0.1
                 pygame.mixer.music.set_volume(volume)
+                if flag['mute'] == True:
+                    flag['mute'] == False
+                    client.publish("mute", "OFF", retain = True)
                 talk("33.wav")
                 client.publish("volume", str(volume), retain = True)
             else:
                 talk("36.wav")
+                flag['mute'] == True
+                client.publish("mute", "ON", retain = True)
         else:
             talk("27.wav")
     elif command.find('прибавь громкость') != -1 or command.find('сделай погромче') != -1 or command.find('прибавь звук') != -1:
@@ -263,6 +297,9 @@ def makeSomething(command):
             if (volume + 0.1 <= 1):
                 volume += 0.1
                 pygame.mixer.music.set_volume(volume)
+                if flag['mute'] == True:
+                    flag['mute'] == False
+                    client.publish("mute", "OFF", retain = True)
                 talk("32.wav")
                 client.publish("volume", str(volume), retain = True)
             else:
@@ -298,16 +335,14 @@ while True:
     client.subscribe("volume")
     client.subscribe("song")
     client.subscribe("voice")
+    time.sleep(2)
     client.loop_stop() #stop the loop
-
     #Music
     if flag['music'] == True:
         for event in pygame.event.get():
             if event.type == pygame.USEREVENT:
                 song = (song + 1) % 15
                 play()
-    else:
-        pygame.mixer.music.stop()
 
     command = -1
     while command == -1:
