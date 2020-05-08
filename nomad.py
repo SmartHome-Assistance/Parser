@@ -3,12 +3,14 @@ import os
 import sys
 import pygame
 import time
+import datetime
 import paho.mqtt.client as mqtt
+from pyspectator.processor import Cpu
 
 song = 0
 volume = 0.5
 flag = {'mainLight' : False, 'extraLight' : False, 'music' : False, 'voice' : False, 'pause' : False, 'mute' : False}
-music = ["Bartholomew.wav", "Devil_Like_You.wav", "Everybody_Walkin__This_Land.wav", "Glitter_Gold.wav", "Hungry_Heart.wav",
+playlist = ["Bartholomew.wav", "Devil_Like_You.wav", "Everybody_Walkin__This_Land.wav", "Glitter_Gold.wav", "Hungry_Heart.wav",
          "In_My_Mind.wav", "La_dalle.wav", "New_Friends.wav", "Old_Town_Road.wav", "Seven_Nation_Army.wav",
          "Sloppy_Seconds.wav", "This_Is_The_Life.wav", "Unstoppable.wav", "We_Should_Plant_Tree.wav", "West_Coast.wav"]
 
@@ -26,21 +28,26 @@ def on_message(client, userdata, message):
         if flag['mute'] == False:
             volume = float(message.payload.decode("utf-8"))
             pygame.mixer.music.set_volume(volume)
-    elif message.topic == "song":
-        s = str(message.payload.decode("utf-8"))
-        if song != int(s[0]):
-            song = int(s[0])
-            pygame.mixer.music.load("music/" + music[song])
-            pygame.mixer.music.set_volume(volume)
-            pygame.mixer.music.set_endevent(pygame.USEREVENT)
-            pygame.mixer.music.play()
+    elif message.topic == "previous":
+        if str(message.payload.decode("utf-8")) == "ON":
+            if song != 0:
+                song -= 1
+            else:
+                song = 14
+            play(song)
+            client.publish("previous", "OFF", retain = True)
+    elif message.topic == "following":
+        if str(message.payload.decode("utf-8")) == "ON":
+            song = (song + 1) % 15
+            play(song)
+            client.publish("following", "OFF", retain = True)
     elif message.topic == "voice":
         flag['voice'] = False
         if str(message.payload.decode("utf-8")) == "Woman":
             flag['voice'] = True
     elif message.topic == "music":
         if flag['music'] == False and str(message.payload.decode("utf-8")) == "ON":
-            play()
+            play(song)
             flag['music'] = True
         elif flag['music'] == True and str(message.payload.decode("utf-8")) == "OFF":
             pygame.mixer.music.stop()
@@ -74,17 +81,32 @@ client.publish("mainLight", "OFF", retain = True) #publishing starter messages i
 client.publish("extraLight", "OFF", retain = True)
 client.publish("music", "OFF", retain = True)
 client.publish("mute", "OFF", retain = True)
+client.publish("previous", "OFF", retain = True)
+client.publish("following", "OFF", retain = True)
 client.publish("pause", "OFF", retain = True)
-client.publish("volume", "O.5", retain = True)
-client.publish("song", "O - Bartholomew.wav", retain = True)
+client.publish("volume", "0.5", retain = True)
+client.publish("song", "0 - Bartholomew.wav", retain = True)
 client.publish("voice", "Man", retain = True)
 
-def play():
-    pygame.mixer.music.load("music/" + music[song])
+client.loop_start() #start the loop
+client.subscribe("mainLight") #subscribing to topics
+client.subscribe("extraLight")
+client.subscribe("music")
+client.subscribe("mute")
+client.subscribe("previous")
+client.subscribe("following")
+client.subscribe("pause")
+client.subscribe("volume")
+client.subscribe("song")
+client.subscribe("voice")
+time.sleep(2)
+
+def play(song):
+    pygame.mixer.music.load("music/" + playlist[song])
     pygame.mixer.music.set_volume(volume)
     pygame.mixer.music.set_endevent(pygame.USEREVENT)
     pygame.mixer.music.play()
-    client.publish("song", str(song) + " - " + music[song], retain = True)
+    client.publish("song", str(song) + " - " + playlist[song], retain = True)
 
 def talk(number):
     words = "voice/m" + number
@@ -165,7 +187,7 @@ def makeSomething(command):
                 talk("11.wav")
                 flag['music'] = True
                 client.publish("music", "ON", retain = True)
-                play()
+                play(song)
             elif flag['pause'] == True:
                 talk("38.wav")
             else:
@@ -263,7 +285,7 @@ def makeSomething(command):
         if flag['music'] == True:
             talk("25.wav")
             song = (song + 1) % 15
-            play()
+            play(song)
         else:
             talk("27.wav")
     elif command.find('предыдущий трек') != -1 or command.find('предыдущая песня') != -1 or command.find('назад') != -1:
@@ -273,7 +295,7 @@ def makeSomething(command):
                 song -= 1
             else:
                 song = 14
-            play()
+            play(song)
         else:
             talk("27.wav")
     elif command.find('убавь громкость') != -1 or command.find('сделай потише') != -1 or command.find('убавь звук') != -1:
@@ -325,24 +347,15 @@ def makeSomething(command):
         talk("31.wav")
 
 while True:
-    #MQTT
-    client.loop_start() #start the loop
-    client.subscribe("mainLight") #subscribing to topics
-    client.subscribe("extraLight")
-    client.subscribe("music")
-    client.subscribe("mute")
-    client.subscribe("pause")
-    client.subscribe("volume")
-    client.subscribe("song")
-    client.subscribe("voice")
-    time.sleep(2)
-    client.loop_stop() #stop the loop
+    client.publish("cpu", Cpu(monitoring_latency=1).temperature, retain = True)
+    client.publish("datetime", datetime.datetime.now().strftime("%H:%M:%S %d.%m.%Y"), retain = True)
+
     #Music
     if flag['music'] == True:
         for event in pygame.event.get():
             if event.type == pygame.USEREVENT:
                 song = (song + 1) % 15
-                play()
+                play(song)
 
     command = -1
     while command == -1:
