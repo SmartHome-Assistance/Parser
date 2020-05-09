@@ -6,6 +6,8 @@ import time
 import datetime
 import paho.mqtt.client as mqtt
 from pyspectator.processor import Cpu
+from pyowm import OWM
+import threading
 
 song = 0
 volume = 0.5
@@ -13,6 +15,16 @@ flag = {'mainLight' : False, 'extraLight' : False, 'music' : False, 'voice' : Fa
 playlist = ["Bartholomew.wav", "Devil_Like_You.wav", "Everybody_Walkin__This_Land.wav", "Glitter_Gold.wav", "Hungry_Heart.wav",
          "In_My_Mind.wav", "La_dalle.wav", "New_Friends.wav", "Old_Town_Road.wav", "Seven_Nation_Army.wav",
          "Sloppy_Seconds.wav", "This_Is_The_Life.wav", "Unstoppable.wav", "We_Should_Plant_Tree.wav", "West_Coast.wav"]
+
+#Weather
+def weather():
+    API_key = "eba58a5494ba58eeadd60a2a0107ae3c"
+    owm = OWM(API_key, language = 'ru')
+    obs = owm.weather_at_coords(56.196132, 44.003592)
+    w = obs.get_weather()
+    temp = str(w.get_temperature(unit = 'celsius'))[9:13] + "°С"
+    client.publish("weather", temp, retain = True)
+    threading.Timer(3600, weather).start() 
 
 #PyGame
 # pylint: disable=no-member
@@ -109,9 +121,9 @@ def play(song):
     client.publish("song", str(song) + " - " + playlist[song], retain = True)
 
 def talk(number):
-    words = "voice/m" + number
+    words = "voice/M" + number
     if flag['voice'] == True:
-        words = "voice/w" + number
+        words = "voice/W" + number
     pygame.mixer.music.pause()
     sound = pygame.mixer.Sound(words)
     sound.play()
@@ -346,6 +358,7 @@ def makeSomething(command):
             client.publish("voice", "Man", retain = True)
         talk("31.wav")
 
+weather()
 while True:
     client.publish("cpu", Cpu(monitoring_latency=1).temperature, retain = True)
     client.publish("datetime", datetime.datetime.now().strftime("%H:%M:%S %d.%m.%Y"), retain = True)
