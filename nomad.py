@@ -5,10 +5,14 @@ import pygame
 import time
 import datetime
 import paho.mqtt.client as mqtt
-from pyspectator.processor import Cpu
+from gpiozero import CPUTemperature
 from pyowm import OWM
 import threading
+from smbus import SMBus
 
+
+bus_addr = 0x04 #bus address
+bus = SMBus(1) # indicates /dev/ic2-1
 song = 0
 volume = 0.5
 flag = {'mainLight' : False, 'extraLight' : False, 'music' : False, 'voice' : False, 'pause' : False, 'mute' : False}
@@ -80,11 +84,20 @@ def on_message(client, userdata, message):
             elif flag['pause'] == True and str(message.payload.decode("utf-8")) == "OFF":
                 pygame.mixer.music.unpause()
                 flag['pause'] = False
+    elif message.topic == "mainLight":
+        if flag['mainLight'] == False and str(message.payload.decode("utf-8")) == "ON":
+            flag['mainLight'] = True
+            bus.write_byte(bus_addr, 0x0)
+        elif flag['mainLight'] == True and str(message.payload.decode("utf-8")) == "OFF":
+            flag['mainLight'] = False
+            bus.write_byte(bus_addr, 0x1)
     else:
-        flag[message.topic] = False
         if str(message.payload.decode("utf-8")) == "ON":
             flag[message.topic] = True
+        else:
+            flag[message.topic] = False
 
+bus.write_byte(bus_addr, 0x1)
 client = mqtt.Client("server") #creating new instance
 client.on_message = on_message #attach function to callback
 client.connect("localhost") #connect to broker
@@ -109,7 +122,6 @@ client.subscribe("previous")
 client.subscribe("following")
 client.subscribe("pause")
 client.subscribe("volume")
-client.subscribe("song")
 client.subscribe("voice")
 time.sleep(2)
 
@@ -168,6 +180,7 @@ def makeSomething(command):
                     talk("5.wav")
                     flag['mainLight'] = True
                     client.publish("mainLight", "ON", retain = True)
+                    bus.write_byte(bus_addr, 0x0)
                 else:
                     talk("8.wav")
             elif command.find('дополнительный') != -1:
@@ -182,12 +195,14 @@ def makeSomething(command):
                     talk("7.wav")
                     flag['mainLight'] = True
                     client.publish("mainLight", "ON", retain = True)
+                    bus.write_byte(bus_addr, 0x0)
                     flag['extraLight'] = True
                     client.publish("extraLight", "ON", retain = True)
                 elif flag['mainLight'] == False:
                     talk("5.wav")
                     flag['mainLight'] = True
                     client.publish("mainLight", "ON", retain = True)
+                    bus.write_byte(bus_addr, 0x0)
                 elif flag['extraLight'] == False:
                     talk("6.wav")
                     flag['extraLight'] = True
@@ -224,6 +239,7 @@ def makeSomething(command):
                     talk("15.wav")
                     flag['mainLight'] = False
                     client.publish("mainLight", "OFF", retain = True)
+                    bus.write_byte(bus_addr, 0x1)
                 else:
                     talk("16.wav")
             elif command.find('дополнительный') != -1:
@@ -238,12 +254,14 @@ def makeSomething(command):
                     talk("19.wav")
                     flag['mainLight'] = False
                     client.publish("mainLight", "OFF", retain = True)
+                    bus.write_byte(bus_addr, 0x1)
                     flag['extraLight'] = False
                     client.publish("extraLight", "OFF", retain = True)
                 elif flag['mainLight'] == True:
                     talk("15.wav")
                     flag['mainLight'] = False
                     client.publish("mainLight", "OFF", retain = True)
+                    bus.write_byte(bus_addr, 0x1)
                 elif flag['extraLight'] == True:
                     talk("17.wav")
                     flag['extraLight'] = False
@@ -360,8 +378,9 @@ def makeSomething(command):
 
 weather()
 while True:
-    client.publish("cpu", Cpu(monitoring_latency=1).temperature, retain = True)
-    client.publish("datetime", datetime.datetime.now().strftime("%H:%M:%S %d.%m.%Y"), retain = True)
+    cpu = str(CPUTemperature())[44:49]
+    client.publish("temp",cpu, retain = True)
+    client.publish("time", datetime.datetime.now().strftime("%H:%M:%S %d.%m.%Y"), retain = True)
 
     #Music
     if flag['music'] == True:
